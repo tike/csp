@@ -10,7 +10,34 @@ import (
 type Policy struct {
 	m      sync.Mutex
 	v      map[string][]string
-	Report []*url.URL
+	report []*url.URL
+}
+
+func NewPolicy() *Policy {
+	return &Policy{
+		v: make(map[string][]string),
+	}
+}
+
+func (p *Policy) Set(dir string, sources ...string) *Policy {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if legalKey(dir) {
+		p.v[dir] = sources
+	}
+
+	return p
+}
+
+func (p *Policy) Add(dir string, sources ...string) *Policy {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if legalKey(dir) {
+		p.v[dir] = append(p.v[dir], sources...)
+	}
+	return p
 }
 
 func (p Policy) String() string {
@@ -20,35 +47,15 @@ func (p Policy) String() string {
 		polTokens = append(polTokens, directive+" "+strings.Join(sourceList, " "))
 	}
 
-	if p.Report != nil {
+	if p.report != nil {
 		uris := []string{DirReport}
-		for _, uri := range p.Report {
+		for _, uri := range p.report {
 			uris = append(uris, uri.String())
 		}
 		polTokens = append(polTokens, strings.Join(uris, " "))
 	}
 
 	return strings.Join(polTokens, ";")
-}
-
-func (p *Policy) Set(dir string, sources ...string) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	p.v[dir] = sources
-}
-
-func (p *Policy) Add(dir string, sources ...string) {
-	p.m.Lock()
-	defer p.m.Unlock()
-
-	p.v[dir] = append(p.v[dir], sources...)
-}
-
-func NewPolicy() *Policy {
-	return &Policy{
-		v: make(map[string][]string),
-	}
 }
 
 func Parse(encPolicy string) (*Policy, error) {
@@ -67,14 +74,14 @@ func Parse(encPolicy string) (*Policy, error) {
 		switch name {
 		case DirReport:
 			if len(parts) == 1 {
-				p.Report = []*url.URL{}
+				p.report = []*url.URL{}
 				break
 			}
 			repList, err := parseReportList(parts[1])
 			if err != nil {
 				return nil, err
 			}
-			p.Report = repList
+			p.report = repList
 
 		case DirConnect, DirDefault, DirFont, DirFrame, DirImage, DirMedia,
 			DirObject, DirSandbox, DirScript:
@@ -140,4 +147,13 @@ func parseReportList(list string) ([]*url.URL, error) {
 		vals = append(vals, uri)
 	}
 	return vals, nil
+}
+
+func legalKey(key string) bool {
+	switch key {
+	case DirConnect, DirDefault, DirFont, DirFrame, DirImage, DirMedia,
+		DirObject, DirSandbox, DirScript, DirReport:
+		return true
+	}
+	return false
 }
