@@ -26,5 +26,5 @@ type Source struct {
 }
 
 type ReportObj struct {
-	Report Report `json:csp-report`
+	Report Report `json:"csp-report"`
 }
