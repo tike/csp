@@ -41,6 +41,9 @@ func (p *Policy) Add(dir string, sources ...string) *Policy {
 }
 
 func (p Policy) String() string {
+	p.m.Lock()
+	p.m.Unlock()
+
 	polTokens := make([]string, 0, len(p.v)+1)
 
 	for directive, sourceList := range p.v {
