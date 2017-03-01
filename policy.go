@@ -8,9 +8,8 @@ import (
 )
 
 type Policy struct {
-	m      sync.Mutex
-	v      map[string][]string
-	report []*url.URL
+	m sync.Mutex
+	v map[string][]string
 }
 
 func NewPolicy() *Policy {
@@ -50,14 +49,6 @@ func (p Policy) String() string {
 		polTokens = append(polTokens, directive+" "+strings.Join(sourceList, " "))
 	}
 
-	if p.report != nil {
-		uris := []string{DirReport}
-		for _, uri := range p.report {
-			uris = append(uris, uri.String())
-		}
-		polTokens = append(polTokens, strings.Join(uris, " "))
-	}
-
 	return strings.Join(polTokens, ";")
 }
 
@@ -66,41 +57,25 @@ func Parse(encPolicy string) (*Policy, error) {
 
 	p := NewPolicy()
 	for _, rawDirective := range rawDirectives {
-
-		parts := strings.SplitN(strings.TrimSpace(rawDirective), " ", 2)
+		parts := strings.Split(strings.TrimSpace(rawDirective), " ")
 
 		name, err := parseName(parts[0])
 		if err != nil {
 			return nil, err
 		}
 
-		switch name {
-		case DirReport:
-			if len(parts) == 1 {
-				p.report = []*url.URL{}
-				break
-			}
-			repList, err := parseReportList(parts[1])
-			if err != nil {
-				return nil, err
-			}
-			p.report = repList
-
-		case DirConnect, DirDefault, DirFont, DirFrame, DirImage, DirMedia,
-			DirObject, DirSandbox, DirScript:
-			if _, there := p.v[name]; there {
-				break
-			}
-			if len(parts) == 1 {
-				p.v[name] = []string{}
-				break
-			}
-			sourceList, err := parseSourceList(parts[1])
-			if err != nil {
-				return nil, err
-			}
-			p.v[name] = sourceList
+		if _, there := p.v[name]; there {
+			break
 		}
+		if len(parts) == 1 {
+			p.v[name] = []string{}
+			break
+		}
+		sourceList, err := parseSourceList(parts[1])
+		if err != nil {
+			return nil, err
+		}
+		p.v[name] = sourceList
 
 	}
 	return p, nil
@@ -119,13 +94,14 @@ func parseName(dir string) (string, error) {
 
 func parseSourceList(val string) ([]string, error) {
 	sl := strings.Split(strings.TrimSpace(val), " ")
-	sources := make([]string, 0, len(sl))
+	if len(sl) == 0 {
+		return []string{}, nil
+	}
 
+	sources := make([]string, 0, len(sl))
 	for _, sle := range sl {
-		switch val := strings.ToLower(sle); val {
-		case ValNone:
-			return []string{}, nil
-		case ValAny, ValSelf, ValUnsafeEval, ValUnsafeInline:
+		switch val := strings.ToLower(strings.TrimSpace(sle)); val {
+		case ValNone, ValAny, ValSelf, ValUnsafeEval, ValUnsafeInline:
 			sources = append(sources, val)
 		default:
 			u, err := url.Parse(val)
@@ -136,20 +112,6 @@ func parseSourceList(val string) ([]string, error) {
 		}
 	}
 	return sources, nil
-}
-
-func parseReportList(list string) ([]*url.URL, error) {
-	list = strings.ToLower(list)
-	vals := make([]*url.URL, 0, 3)
-
-	for _, val := range strings.Split(list, " ") {
-		uri, err := url.Parse(val)
-		if err != nil {
-			return nil, err
-		}
-		vals = append(vals, uri)
-	}
-	return vals, nil
 }
 
 func legalKey(key string) bool {
