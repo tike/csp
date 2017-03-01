@@ -41,7 +41,7 @@ func (p *Policy) Add(dir string, sources ...string) *Policy {
 
 func (p Policy) String() string {
 	p.m.Lock()
-	p.m.Unlock()
+	defer p.m.Unlock()
 
 	polTokens := make([]string, 0, len(p.v)+1)
 
@@ -49,7 +49,7 @@ func (p Policy) String() string {
 		polTokens = append(polTokens, directive+" "+strings.Join(sourceList, " "))
 	}
 
-	return strings.Join(polTokens, ";")
+	return strings.Join(polTokens, "; ")
 }
 
 func Parse(encPolicy string) (*Policy, error) {
