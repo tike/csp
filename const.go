@@ -32,7 +32,7 @@ const (
 
 // Nonce and hash values
 const (
-	ValNoncePrfx  = "nonce-"
+	ValNoncePrfx  = "nonce"
 	ValHashSHA256 = "sha256"
 	ValHashSHA384 = "sha384"
 	ValHashSHA512 = "sha512"

@@ -100,8 +100,25 @@ func parseSourceList(val string) ([]string, error) {
 
 	sources := make([]string, 0, len(sl))
 	for _, sle := range sl {
-		switch val := strings.ToLower(strings.TrimSpace(sle)); val {
-		case ValNone, ValAny, ValSelf, ValUnsafeEval, ValUnsafeInline:
+		val := strings.ToLower(strings.TrimSpace(sle))
+		switch {
+		case strings.HasPrefix(val, ValNoncePrfx):
+			fallthrough
+		case strings.HasPrefix(val, ValHashSHA256):
+			fallthrough
+		case strings.HasPrefix(val, ValHashSHA384):
+			fallthrough
+		case strings.HasPrefix(val, ValHashSHA512):
+			fallthrough
+		case ValNone == val:
+			fallthrough
+		case ValAny == val:
+			fallthrough
+		case ValSelf == val:
+			fallthrough
+		case ValUnsafeEval == val:
+			fallthrough
+		case ValUnsafeInline == val:
 			sources = append(sources, val)
 		default:
 			u, err := url.Parse(val)
